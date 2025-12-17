@@ -1,3 +1,5 @@
+
+#define NOB_IMPLEMENTATION
 /* nob - v1.25.1 - Public Domain - https://github.com/tsoding/nob.h
 
    This library is the next generation of the [NoBuild](https://github.com/tsoding/nobuild) idea.
@@ -62,7 +64,7 @@
       from other languages (for whatever reason).
 
       If only few specific names create conflicts for you, you can just #undef those names after the
-      `#include <nob.h>` since they are macros anyway.
+      `#include <nob.h>` since they are macros anyway.
 
    # Macro Interface
 
@@ -202,6 +204,7 @@ typedef enum {
     NOB_WARNING,
     NOB_ERROR,
     NOB_NO_LOGS,
+    NOB_DEBUG,
 } Nob_Log_Level;
 
 // Any messages with the level below nob_minimal_log_level are going to be suppressed.
@@ -715,7 +718,7 @@ NOBDEF Nob_String_View nob_sv_from_parts(const char *data, size_t count);
 
 // DEPRECATED: Usage of the bundled minirent.h below is deprecated, because it introduces more
 // problems than it solves. It will be removed in the next major release of nob.h. In the meantime,
-// it is recommended to `#define NOB_NO_MINIRENT` if it causes problems for you.
+// it is recommended to `#define NOB_NO_MINIRENT` if it causes problems for you.
 // TODO: Use NOB_DEPRECATED for minirent.h declarations
 
 // minirent.h HEADER BEGIN ////////////////////////////////////////
@@ -1549,6 +1552,9 @@ NOBDEF void nob_log(Nob_Log_Level level, const char *fmt, ...)
     case NOB_ERROR:
         fprintf(stderr, "[ERROR] ");
         break;
+    case NOB_DEBUG:
+        fprintf(stderr, "[DEBUG] ");
+        break;
     case NOB_NO_LOGS: return;
     default:
         NOB_UNREACHABLE("nob_log");
@@ -1985,6 +1991,25 @@ NOBDEF Nob_String_View nob_sv_chop_by_delim(Nob_String_View *sv, char delim)
 {
     size_t i = 0;
     while (i < sv->count && sv->data[i] != delim) {
+        i += 1;
+    }
+
+    Nob_String_View result = nob_sv_from_parts(sv->data, i);
+
+    if (i < sv->count) {
+        sv->count -= i + 1;
+        sv->data  += i + 1;
+    } else {
+        sv->count -= i;
+        sv->data  += i;
+    }
+
+    return result;
+}
+NOBDEF Nob_String_View nob_sv_chop_by_space(Nob_String_View *sv)
+{
+    size_t i = 0;
+    while (i < sv->count && !isspace(sv->data[i])) {
         i += 1;
     }
 
