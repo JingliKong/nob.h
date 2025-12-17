@@ -1747,6 +1747,48 @@ defer:
     return result;
 }
 
+void kTraverseDirs (Nob_File_Paths *paths, char *pathName)
+{
+    struct stat status;
+    int result;
+    DIR *dirP;
+    struct dirent* entryP;
+    char fName[PATH_MAX];
+
+    result = stat(pathName, &status);
+    assert(result != -1);
+
+    Nob_File_Type type = nob_get_file_type(pathName);
+
+    if (type == NOB_FILE_DIRECTORY) 
+    {
+        // recursively search dir
+        dirP = opendir(pathName);
+        while ((entryP = readdir(dirP)) != NULL)
+        {
+            //We do not want to get stuck in an infinite loop
+			//Skip over the "."(current directory) and ".."(parent directory)
+			if(strcmp(entryP -> d_name, ".") == 0 || strcmp(entryP -> d_name, "..") == 0){
+				continue;
+			}
+            //Save the whole path to fname
+            snprintf(fName, PATH_MAX, "%s/%s", pathName, entryP->d_name);
+            // nob_log(NOB_DEBUG, "path: %s", fName);
+            
+            // store a copy on the heap
+            char *copy = strdup(fName); // TODO: Fix memory leak... later? 
+            if (!copy) {
+                perror("strdup");
+                closedir(dirP);
+                return;
+            }
+            nob_da_append(paths, copy);
+            kTraverseDirs(paths, fName);
+        }
+        closedir(dirP);
+    }
+}
+
 NOBDEF char *nob_temp_strdup(const char *cstr)
 {
     size_t n = strlen(cstr);
